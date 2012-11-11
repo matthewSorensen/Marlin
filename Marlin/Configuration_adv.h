@@ -5,13 +5,10 @@
 //=============================Thermal Settings  ============================
 //===========================================================================
 
-// Select one of these only to define how the bed temp is read.
-//
-//#define BED_LIMIT_SWITCHING
 #ifdef BED_LIMIT_SWITCHING
   #define BED_HYSTERESIS 2 //only disable heating if T>target+BED_HYSTERESIS and enable heating if T>target-BED_HYSTERESIS
 #endif
-#define BED_CHECK_INTERVAL 5000 //ms
+#define BED_CHECK_INTERVAL 5000 //ms between checks in bang-bang control
 
 //// Heating sanity check:
 // This waits for the watchperiod in milliseconds whenever an M104 or M109 increases the target temperature
@@ -76,6 +73,54 @@
 
 #define ENDSTOPS_ONLY_FOR_HOMING // If defined the endstops will only be used for homing
 
+
+//// AUTOSET LOCATIONS OF LIMIT SWITCHES
+//// Added by ZetaPhoenix 09-15-2012
+#ifdef MANUAL_HOME_POSITION  //Use manual limit switch locations
+  #define X_HOME_POS MANUAL_X_HOME_POS
+  #define Y_HOME_POS MANUAL_Y_HOME_POS
+  #define Z_HOME_POS MANUAL_Z_HOME_POS
+#else //Set min/max homing switch positions based upon homing direction and min/max travel limits
+  //X axis
+  #if X_HOME_DIR == -1
+    #ifdef BED_CENTER_AT_0_0
+      #define X_HOME_POS X_MAX_LENGTH * -0.5
+    #else
+      #define X_HOME_POS X_MIN_POS
+    #endif //BED_CENTER_AT_0_0
+  #else    
+    #ifdef BED_CENTER_AT_0_0
+      #define X_HOME_POS X_MAX_LENGTH * 0.5
+    #else
+      #define X_HOME_POS X_MAX_POS
+    #endif //BED_CENTER_AT_0_0
+  #endif //X_HOME_DIR == -1
+  
+  //Y axis
+  #if Y_HOME_DIR == -1
+    #ifdef BED_CENTER_AT_0_0
+      #define Y_HOME_POS Y_MAX_LENGTH * -0.5
+    #else
+      #define Y_HOME_POS Y_MIN_POS
+    #endif //BED_CENTER_AT_0_0
+  #else    
+    #ifdef BED_CENTER_AT_0_0
+      #define Y_HOME_POS Y_MAX_LENGTH * 0.5
+    #else
+      #define Y_HOME_POS Y_MAX_POS
+    #endif //BED_CENTER_AT_0_0
+  #endif //Y_HOME_DIR == -1
+  
+  // Z axis
+  #if Z_HOME_DIR == -1 //BED_CENTER_AT_0_0 not used
+    #define Z_HOME_POS Z_MIN_POS
+  #else    
+    #define Z_HOME_POS Z_MAX_POS
+  #endif //Z_HOME_DIR == -1
+#endif //End auto min/max positions
+//END AUTOSET LOCATIONS OF LIMIT SWITCHES -ZP
+
+
 //#define Z_LATE_ENABLE // Enable Z the last moment. Needed if your Z driver overheats.
 
 // A single Z stepper driver is usually used to drive 2 stepper motors.
@@ -134,17 +179,17 @@
 
 
 #define SD_FINISHED_STEPPERRELEASE true  //if sd support and the file is finished: disable steppers?
-#define SD_FINISHED_RELEASECOMMAND "M84 X Y Z E" // no z because of layer shift.
+#define SD_FINISHED_RELEASECOMMAND "M84 X Y Z E" // You might want to keep the z enabled so your bed stays in place.
 
-// The hardware watchdog should halt the Microcontroller, in case the firmware gets stuck somewhere. However:
-// the Watchdog is not working well, so please only enable this for testing
-// this enables the watchdog interrupt.
+// The hardware watchdog should reset the Microcontroller disabling all outputs, in case the firmware gets stuck and doesn't do temperature regulation.
 //#define USE_WATCHDOG
-//#ifdef USE_WATCHDOG
-  // you cannot reboot on a mega2560 due to a bug in he bootloader. Hence, you have to reset manually, and this is done hereby:
-//#define RESET_MANUAL
-//#define WATCHDOG_TIMEOUT 4  //seconds
-//#endif
+
+#ifdef USE_WATCHDOG
+// If you have a watchdog reboot in an ArduinoMega2560 then the device will hang forever, as a watchdog reset will leave the watchdog on.
+// The "WATCHDOG_RESET_MANUAL" goes around this by not using the hardware reset.
+//  However, THIS FEATURE IS UNSAFE!, as it will only work if interrupts are disabled. And the code could hang in an interrupt routine with interrupts disabled.
+//#define WATCHDOG_RESET_MANUAL
+#endif
 
 // extruder advance constant (s2/mm3)
 //
@@ -169,7 +214,7 @@
 #define MM_PER_ARC_SEGMENT 1
 #define N_ARC_CORRECTION 25
 
-const int dropsegments=5; //everything with less than this number of steps will be ignored as move and joined with the next movement
+const unsigned int dropsegments=5; //everything with less than this number of steps will be ignored as move and joined with the next movement
 
 // If you are using a RAMPS board or cheap E-bay purchased boards that do not detect when an SD card is inserted
 // You can get round this by connecting a push button or single throw switch to the pin defined as SDCARDCARDDETECT 
